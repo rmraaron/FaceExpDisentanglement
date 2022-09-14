@@ -493,6 +493,7 @@ if __name__ == '__main__':
                         help="Saving ID discriminator Model.")
     parser.add_argument("--visualise", type=lambda x:bool(distutils.util.strtobool(x)), default=True,
                         help="Visualisation.")
+    parser.add_argument("--info_bn", type=bool, default=False, help="Using information bottleneck.")
 
     args = parser.parse_args()
 

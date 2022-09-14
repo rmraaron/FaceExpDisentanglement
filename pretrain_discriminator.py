@@ -230,7 +230,7 @@ if __name__ == '__main__':
     elif args.dataset == "FaceScape":
         args.name = "ID_discriminator_FaceScape_70percent"
         args.epochs = 100
-        args.batch_size = 4
+        args.batch_size = 32
     """ args override zone ends. """
 
     log_name_dir = LOGS_PATH + args.name + "/"

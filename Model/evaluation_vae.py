@@ -20,7 +20,6 @@ from utils.dataset import BU3DFE
 from utils.facescape_dataset import FaceScape
 from path import *
 
-# NAME = "COMA_lc4_epoch300_gt_l65_woiddis_woinfobn_noneexplc_twice"
 NAME = sys.argv[1]
 
 

@@ -297,6 +297,6 @@ if __name__ == '__main__':
     elif "FaceScape" in NAME:
         dataset_type = "FaceScape"
     else:
-        raise ValueError("Please include dataset name in log name, [COMA|BU3DFE|FaceScape].")
+        raise ValueError("Please include dataset name in log name, [COMA|FaceScape].")
     expression_transfer(datasets_type=dataset_type)
     expression_interpolate(datasets_type=dataset_type)
