@@ -224,11 +224,11 @@ if __name__ == '__main__':
         args.epochs = 50
         args.batch_size = 32
     elif args.dataset == "BU3DFE":
-        args.name = "ID_discriminator_BU3DFE"
+        args.name = "ID_discriminator_BU3DFE_10f"
         args.epochs = 100
         args.batch_size = 32
     elif args.dataset == "FaceScape":
-        args.name = "ID_discriminator_FaceScape"
+        args.name = "ID_discriminator_FaceScape_70percent"
         args.epochs = 100
         args.batch_size = 4
     """ args override zone ends. """

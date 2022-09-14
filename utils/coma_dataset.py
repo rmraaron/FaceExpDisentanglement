@@ -152,7 +152,7 @@ class COMA(Dataset):
     def __getitem__(self, index):
         """
         Return: Input vertices;
-                Expression ~[0, 11];
+                Expression ~[0, 15];
                 Expression level ~[0., 1.];
                 Subject ID ~[0, 11];
                 Corresponding neutral vertices;
@@ -177,6 +177,7 @@ class COMA(Dataset):
 
         sample_id_idx = self.sample_id(self.subject_ids[index], id_label_same.item())
         sample_exp_idx = self.sample_exp(self.expressions[index], exp_label_same.item())
+        sample_vertex = self.vertices[sample_id_idx]
 
         exp_lvl = self.expression_levels[index].item()
         if 0. <= exp_lvl <= 0.375:
@@ -196,7 +197,7 @@ class COMA(Dataset):
                    self.subject_ids[index], \
                    neutral_v, \
                    exp_v, \
-                   self.vertices[sample_id_idx], \
+                   sample_vertex, \
                    id_label_same.to(device, dtype=torch.long).squeeze(-1), \
                    self.vertices[sample_exp_idx].to(device), \
                    exp_label_same.to(device, dtype=torch.long).squeeze(-1),
@@ -207,7 +208,7 @@ class COMA(Dataset):
                 self.subject_ids[index], \
                 neutral_v.to(device), \
                 exp_v.to(device), \
-                self.vertices[sample_id_idx].to(device), \
+                sample_vertex.to(device), \
                 id_label_same.to(device, dtype=torch.long).squeeze(-1), \
                 self.vertices[sample_exp_idx].to(device), \
                 exp_label_same.to(device, dtype=torch.long).squeeze(-1),
@@ -261,4 +262,4 @@ class COMA(Dataset):
 
 
 if __name__ == '__main__':
-    a = COMA("train")[10]
+    a = COMA("train", always_sample_same_id=True)[10]

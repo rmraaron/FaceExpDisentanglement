@@ -46,14 +46,14 @@ def evaluate(write_obj=False, datasets_type="COMA"):
         test_data = BU3DFE(partition="test", sort=True)
         test_loader = DataLoader(test_data, num_workers=0, batch_size=1, shuffle=False)
         de_normalise_factor = BU3DFE_NORMALISE
-        mean_face = torch.from_numpy(np.load(DATASET_PATH + 'BU3DFE_mean_face.npy')).to(device=device, dtype=torch.float32).unsqueeze(0)
+        mean_face = torch.from_numpy(np.load(DATASET_PATH + 'BU3DFE_mean_face_10f.npy')).to(device=device, dtype=torch.float32).unsqueeze(0)
         bu3dfe_faces = np.load(DATASET_PATH + "BU3DFE_face.npy")
         vis_face = bu3dfe_faces
     elif datasets_type == "FaceScape":
         test_data = FaceScape(partition='test')
         test_loader = DataLoader(test_data, num_workers=0, batch_size=1, shuffle=False)
         de_normalise_factor = FACESCAPE_NORMALISE
-        mean_face = torch.from_numpy(np.load(DATASET_PATH + 'facescape_train_mean_face.npy')).to(device=device, dtype=torch.float32).unsqueeze(0)
+        mean_face = torch.from_numpy(np.load(DATASET_PATH + 'facescape_train_mean_face_70percent.npy')).to(device=device, dtype=torch.float32).unsqueeze(0)
         facescape_faces = np.load(DATASET_PATH + "facescape_faces.npy")
         vis_face = facescape_faces
     else:
@@ -197,21 +197,23 @@ def evaluate(write_obj=False, datasets_type="COMA"):
 
             # Save prediction OBJ results.
             if datasets_type == "FaceScape":
-                mesh_vis_true.write_obj(eval_write_path + str(subject_ids) + "_" +
-                                        str(expressions.item()) + ".obj")
-                mesh_vis_true_exp.write_obj(eval_write_path + str(subject_ids) + "_" +
-                                            str(expressions.item()) + "_exp.obj")
-                mesh_vis_full.write_obj(eval_write_path + str(subject_ids) + "_" +
-                                        str(expressions.item()) + "_pred_" +
-                                        "%.3f" % avg_euc_dis(vertices_pred, vertices_gt) + ".obj")
-                mesh_vis_neutral.write_obj(eval_write_path + str(subject_ids) + "_" +
-                                           str(expressions.item()) + "_ne_pred_" +
-                                           "%.3f" % avg_euc_dis(vertices_ne_pred,
-                                                                vertices_ne_gt) + ".obj")
-                mesh_vis_exp.write_obj(eval_write_path + str(subject_ids) + "_" +
-                                       str(expressions.item()) + "_exp_pred_" +
-                                       "%.3f" % avg_euc_dis(vertices_exp_pred,
-                                                            vertices_exp_gt) + ".obj")
+                publicable_list = [122, 212, 340, 344, 393, 395, 421, 527, 594, 610]
+                if subject_ids in publicable_list:
+                    mesh_vis_true.write_obj(eval_write_path + str(subject_ids) + "_" +
+                                            str(expressions.item()) + ".obj")
+                    mesh_vis_true_exp.write_obj(eval_write_path + str(subject_ids) + "_" +
+                                                str(expressions.item()) + "_exp.obj")
+                    mesh_vis_full.write_obj(eval_write_path + str(subject_ids) + "_" +
+                                            str(expressions.item()) + "_pred_" +
+                                            "%.3f" % avg_euc_dis(vertices_pred, vertices_gt) + ".obj")
+                    mesh_vis_neutral.write_obj(eval_write_path + str(subject_ids) + "_" +
+                                               str(expressions.item()) + "_ne_pred_" +
+                                               "%.3f" % avg_euc_dis(vertices_ne_pred,
+                                                                    vertices_ne_gt) + ".obj")
+                    mesh_vis_exp.write_obj(eval_write_path + str(subject_ids) + "_" +
+                                           str(expressions.item()) + "_exp_pred_" +
+                                           "%.3f" % avg_euc_dis(vertices_exp_pred,
+                                                                vertices_exp_gt) + ".obj")
             else:
                 if datasets_type == "COMA":
                     mesh_vis_true.v /= 1000
@@ -240,21 +242,8 @@ def evaluate(write_obj=False, datasets_type="COMA"):
                                        "%.3f" % expression_levels.item() + "_" +
                                        "%.3f" % avg_euc_dis(vertices_exp_pred,
                                                             vertices_exp_gt) + "_exp_pred.obj")
-                if datasets_type == "COMA":
-                    mesh_vis_true.v *= 1000
-                    mesh_vis_true_neutral.v *= 1000
-                    mesh_vis_true_exp.v *= 1000
-                    mesh_vis_full.v *= 1000
-                    mesh_vis_neutral.v *= 1000
-                    mesh_vis_exp.v *= 1000
-            if datasets_type == "COMA":
-                mesh_vis_true.v /= 1000
-                mesh_vis_true_neutral.v /= 1000
-                mesh_vis_true_exp.v /= 1000
-                mesh_vis_full.v /= 1000
-                mesh_vis_neutral.v /= 1000
-                mesh_vis_exp.v /= 1000
-            mesh_vis_true_neutral.write_obj(eval_write_path + str(subject_ids) + "_ne.obj")
+
+                mesh_vis_true_neutral.write_obj(eval_write_path + str(subject_ids) + "_ne.obj")
 
     # Turn results into numpy arrays.
     avg_distances = np.array(avg_distances)

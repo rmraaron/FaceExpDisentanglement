@@ -19,8 +19,9 @@ RACE_MAPPING = {'AE': 0, "AM": 1, "BL": 2, "IN": 3, "LA": 4, "WH": 5}
 class BU3DFE(Dataset):
     def __init__(self, partition='train', include_neutral=True, always_sample_same_id=False, sort=False):
         # 156 is the longest vertex distance from the origin, to normalise.
-        vertices = np.load(DATASET_PATH + 'BU3DFE_ver_' + partition + '_reg.npy') / BU3DFE_NORMALISE
-        labels = np.load(DATASET_PATH + 'BU3DFE_label_' + partition + '.npy', allow_pickle=True)[()]
+        vertices = np.load(DATASET_PATH + 'BU3DFE_ver_' + partition + '_reg_10f.npy') / BU3DFE_NORMALISE
+        labels = np.load(DATASET_PATH + 'BU3DFE_label_' + partition + '_10f.npy', allow_pickle=True)[()]
+        exp_gt_path = "BU3DFE_exp_gt_dict_10f.pt"
 
         expressions = np.vectorize(EXPRESSION_MAPPING.get)(labels['expression'])
         expression_levels = np.array(labels['expression_level'])
@@ -41,10 +42,10 @@ class BU3DFE(Dataset):
         if partition == "train":
             # Save normalised mean face.
             mean_face = np.average(np.array(vertices), axis=0)
-            np.save(DATASET_PATH + 'BU3DFE_mean_face', mean_face)
-            if os.path.exists(DATASET_PATH + "BU3DFE_exp_gt_dict.pt"):
+            np.save(DATASET_PATH + 'BU3DFE_mean_face_10f', mean_face)
+            if os.path.exists(DATASET_PATH + exp_gt_path):
                 logging.info("Using existing exp gt dict.")
-                self.expression_gt_dict = torch.load(DATASET_PATH + "BU3DFE_exp_gt_dict.pt")
+                self.expression_gt_dict = torch.load(DATASET_PATH + exp_gt_path)
             else:
                 self.expression_gt_dict = {}
                 mesh_viewer = MeshViewers(shape=(1, 2))
@@ -79,9 +80,9 @@ class BU3DFE(Dataset):
                                 mesh_viewer[0][0].set_dynamic_meshes([mesh_exp_true])
                                 mesh_viewer[0][1].set_dynamic_meshes([mesh_mean_face])
                                 time.sleep(1)
-                torch.save(self.expression_gt_dict, DATASET_PATH + "BU3DFE_exp_gt_dict.pt")
+                torch.save(self.expression_gt_dict, DATASET_PATH + exp_gt_path)
         else:
-            self.expression_gt_dict = torch.load(DATASET_PATH + "BU3DFE_exp_gt_dict.pt")
+            self.expression_gt_dict = torch.load(DATASET_PATH + exp_gt_path)
 
         def move_to(obj, device):
             if torch.is_tensor(obj):

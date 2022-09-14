@@ -76,10 +76,10 @@ BU3DFE_INVAR_LANDMARKS = BU3DFE_NR_LANDMARKS + BU3DFE_NR_SUPP_LANDMARKS + BU3DFE
 
 
 def bu3dfe_normalise():
-    train_set = np.load(DATASET_PATH + "BU3DFE_ver_train.npy")
-    train_set_labels = np.load(DATASET_PATH + "BU3DFE_label_train.npy", allow_pickle=True)[()]
-    test_set = np.load(DATASET_PATH + "BU3DFE_ver_test.npy")
-    test_set_labels = np.load(DATASET_PATH + "BU3DFE_label_test.npy", allow_pickle=True)[()]
+    train_set = np.load(DATASET_PATH + "BU3DFE_ver_train_10f.npy")
+    train_set_labels = np.load(DATASET_PATH + "BU3DFE_label_train_10f.npy", allow_pickle=True)[()]
+    test_set = np.load(DATASET_PATH + "BU3DFE_ver_test_10f.npy")
+    test_set_labels = np.load(DATASET_PATH + "BU3DFE_label_test_10f.npy", allow_pickle=True)[()]
 
     average_neutral_train = train_set[np.array(train_set_labels["expression"]) == "NE"].mean(0)
 
@@ -126,8 +126,8 @@ def bu3dfe_normalise():
         return data
     new_train_set = process_set(train_set, train_set_labels)
     new_test_set = process_set(test_set, test_set_labels)
-    np.save(DATASET_PATH + "BU3DFE_ver_train_reg", new_train_set)
-    np.save(DATASET_PATH + "BU3DFE_ver_test_reg", new_test_set)
+    np.save(DATASET_PATH + "BU3DFE_ver_train_reg_10f", new_train_set)
+    np.save(DATASET_PATH + "BU3DFE_ver_test_reg_10f", new_test_set)
 
 
 if __name__ == '__main__':
@@ -137,8 +137,8 @@ if __name__ == '__main__':
         if re.match(filename_pattern, fn):
             file_list.append(fn)
 
-    FEMALE_TEST_SET, MALE_TEST_SET = [1, 2, 3, 4, 5, 6], [1, 2, 3, 5]
-    test_set_starts = ['F%04d' % i for i in FEMALE_TEST_SET] + ['M%04d' % i for i in MALE_TEST_SET]
+    # test set: first 10 subjects
+    test_set_starts = ['F%04d' % i for i in range(1, 11)]
 
     vertices_list = [[], []]
     labels_list = []
@@ -161,10 +161,10 @@ if __name__ == '__main__':
         labels_list[dataset_id]['expression_level'].append(int(fn[8:10]))
         labels_list[dataset_id]['race'].append(fn[10:12])
 
-    np.save(DATASET_PATH + 'BU3DFE_ver_train', np.stack(vertices_list[0]))
-    np.save(DATASET_PATH + 'BU3DFE_ver_test', np.stack(vertices_list[1]))
-    np.save(DATASET_PATH + 'BU3DFE_label_train', labels_list[0])
-    np.save(DATASET_PATH + 'BU3DFE_label_test', labels_list[1])
+    np.save(DATASET_PATH + 'BU3DFE_ver_train_10f', np.stack(vertices_list[0]))
+    np.save(DATASET_PATH + 'BU3DFE_ver_test_10f', np.stack(vertices_list[1]))
+    np.save(DATASET_PATH + 'BU3DFE_label_train_10f', labels_list[0])
+    np.save(DATASET_PATH + 'BU3DFE_label_test_10f', labels_list[1])
     np.save(DATASET_PATH + 'BU3DFE_face', face)
 
     bu3dfe_normalise()

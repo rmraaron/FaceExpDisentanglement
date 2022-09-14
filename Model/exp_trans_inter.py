@@ -4,9 +4,12 @@ import sys
 import time
 from types import SimpleNamespace
 
+from torch.utils.data import DataLoader
 import torch
 import numpy as np
+from tqdm import tqdm
 from psbody.mesh import MeshViewers, Mesh
+import trimesh
 
 from Model.vae import VariationalAE
 from utils.coma_dataset import COMA
@@ -19,10 +22,10 @@ random_subject_COMA_b = 10
 random_subject_a_FaceScape = 212
 random_subject_b_FaceScape = 594
 
-random_COMA_interpolate_a = 4
-random_COMA_interpolate_b = 8
+random_COMA_interpolate_a = 8
+random_COMA_interpolate_b = 9
 random_FaceScape_interpolate_b = 610
-random_FaceScape_interpolate_a = 421
+random_FaceScape_interpolate_a = 594
 
 NAME = sys.argv[1]
 
@@ -34,66 +37,80 @@ def visualise(vis_face, vertices_list, datasets_type, show_type):
             os.mkdir(LOGS_PATH + "exp_transfer/")
         mesh_viewer = MeshViewers(shape=(2, 2))
         mesh_viewer[0][0].set_background_color(np.array([1., 1., 1.]))
-        vertices_a_gt, vertices_b_gt, vertices_a_transfer, vertices_b_transfer = vertices_list
+
         mesh_vis_true_a = Mesh(f=vis_face)
         mesh_vis_true_b = Mesh(f=vis_face)
         mesh_vis_transfer_a = Mesh(f=vis_face)
         mesh_vis_transfer_b = Mesh(f=vis_face)
+        vertices_a_gt = vertices_list[0]
+        vertices_b_gt = vertices_list[1]
+        if not os.path.exists(LOGS_PATH + "exp_transfer/" + "{}/".format(datasets_type)):
+            os.mkdir(LOGS_PATH + "exp_transfer/" + "{}/".format(datasets_type))
+        if datasets_type == "COMA":
+            random_a = random_subject_COMA_a
+            random_b = random_subject_COMA_b
+        elif datasets_type == "FaceScape":
+            random_a = random_subject_a_FaceScape
+            random_b = random_subject_b_FaceScape
 
-        mesh_vis_true_a.v = vertices_a_gt
-        mesh_vis_true_b.v = vertices_b_gt
-        mesh_vis_transfer_a.v = vertices_a_transfer
-        mesh_vis_transfer_b.v = vertices_b_transfer
+        for i, [vertices_a_transfer, vertices_b_transfer] in enumerate(
+                zip(vertices_list[2::2], vertices_list[3::2])):
+            mesh_vis_true_a.v = vertices_a_gt
+            mesh_vis_true_b.v = vertices_b_gt
+            mesh_vis_transfer_a.v = vertices_a_transfer
+            mesh_vis_transfer_b.v = vertices_b_transfer
 
-        mesh_viewer[0][0].set_dynamic_meshes([mesh_vis_transfer_a], blocking=True)
-        mesh_viewer[0][1].set_dynamic_meshes([mesh_vis_transfer_b], blocking=True)
-        mesh_viewer[1][0].set_dynamic_meshes([mesh_vis_true_a], blocking=True)
-        mesh_viewer[1][1].set_dynamic_meshes([mesh_vis_true_b], blocking=True)
-        mesh_viewer[1][1].save_snapshot(LOGS_PATH + "exp_transfer/" + datasets_type + ".png")
-        time.sleep(1)
+            mesh_viewer[0][0].set_dynamic_meshes([mesh_vis_transfer_a], blocking=True)
+            mesh_viewer[0][1].set_dynamic_meshes([mesh_vis_transfer_b], blocking=True)
+            mesh_viewer[1][0].set_dynamic_meshes([mesh_vis_true_a], blocking=True)
+            mesh_viewer[1][1].set_dynamic_meshes([mesh_vis_true_b], blocking=True)
+            mesh_viewer[1][1].save_snapshot(
+                LOGS_PATH + "exp_transfer/" + "{}/".format(datasets_type)
+                + "{0}_{1}_{2}.png".format(random_a, random_b, i))
+            time.sleep(0.1)
+
+        save_mesh = trimesh.Trimesh(vertices=vertices_a_gt, faces=vis_face)
+        save_mesh.export(
+            LOGS_PATH + "exp_transfer/" + "{}/".format(datasets_type) + "gt_{}.ply".format(
+                random_a), "ply")
+        save_mesh = trimesh.Trimesh(vertices=vertices_b_gt, faces=vis_face)
+        save_mesh.export(
+            LOGS_PATH + "exp_transfer/" + "{}/".format(datasets_type) + "gt_{}.ply".format(
+                random_b), "ply")
+        save_mesh = trimesh.Trimesh(vertices=vertices_list[-2], faces=vis_face)
+        save_mesh.export(
+            LOGS_PATH + "exp_transfer/" + "{}/".format(datasets_type) + "transferred_{}.ply".format(
+                random_a), "ply")
+        save_mesh = trimesh.Trimesh(vertices=vertices_list[-1], faces=vis_face)
+        save_mesh.export(
+            LOGS_PATH + "exp_transfer/" + "{}/".format(datasets_type) + "transferred_{}.ply".format(
+                random_b), "ply")
 
     elif show_type == "exp_interpolate":
         if not os.path.exists(LOGS_PATH + "exp_interpolate/"):
             os.mkdir(LOGS_PATH + "exp_interpolate/")
-        mesh_viewer = MeshViewers(shape=(2, 6))
+        mesh_viewer = MeshViewers(shape=(1, 1))
         mesh_viewer[0][0].set_background_color(np.array([1., 1., 1.]))
-        vertices_a_neu_gt, vertices_a_inpo_1, vertices_a_inpo_2,\
-        vertices_a_inpo_3, vertices_a_exp_gt,  vertices_id_inpo_1, \
-        vertices_id_inpo_2, vertices_id_inpo_3, vertices_b_neu_gt = vertices_list
+        if not os.path.exists(LOGS_PATH + "exp_interpolate/" + "{}/".format(datasets_type)):
+            os.mkdir(LOGS_PATH + "exp_interpolate/" + "{}/".format(datasets_type))
+        if datasets_type == "COMA":
+            random_a = random_COMA_interpolate_a
+            random_b = random_COMA_interpolate_b
+        elif datasets_type == "FaceScape":
+            random_a = random_FaceScape_interpolate_a
+            random_b = random_FaceScape_interpolate_b
+        for i, ver in enumerate(vertices_list):
+            mesh_vis = Mesh(f=vis_face)
+            mesh_vis.v = ver
+            mesh_viewer[0][0].set_dynamic_meshes([mesh_vis], blocking=True)
+            mesh_viewer[0][0].save_snapshot(LOGS_PATH + "exp_interpolate/" + "{}/".format(
+                datasets_type) + "id_{0}_{1}_{2}.png".format(random_a, random_b, i))
+            time.sleep(0.1)
+            save_mesh = trimesh.Trimesh(vertices=ver, faces=vis_face)
+            save_mesh.export(
+                LOGS_PATH + "exp_interpolate/" + "{}/".format(datasets_type) + "id_{}.ply".format(
+                    i), "ply")
 
-        mesh_vis_true_neu_a = Mesh(f=vis_face)
-        mesh_vis_inpo_exp_1 = Mesh(f=vis_face)
-        mesh_vis_inpo_exp_2 = Mesh(f=vis_face)
-        mesh_vis_inpo_exp_3 = Mesh(f=vis_face)
-        mesh_vis_true_exp_a = Mesh(f=vis_face)
-        mesh_vis_inpo_id_1 = Mesh(f=vis_face)
-        mesh_vis_inpo_id_2 = Mesh(f=vis_face)
-        mesh_vis_inpo_id_3 = Mesh(f=vis_face)
-        mesh_vis_true_neu_b = Mesh(f=vis_face)
-
-        mesh_vis_true_neu_a.v = vertices_a_neu_gt
-        mesh_vis_inpo_exp_1.v = vertices_a_inpo_1
-        mesh_vis_inpo_exp_2.v = vertices_a_inpo_2
-        mesh_vis_inpo_exp_3.v = vertices_a_inpo_3
-        mesh_vis_true_exp_a.v = vertices_a_exp_gt
-        mesh_vis_inpo_id_1.v = vertices_id_inpo_1
-        mesh_vis_inpo_id_2.v = vertices_id_inpo_2
-        mesh_vis_inpo_id_3.v = vertices_id_inpo_3
-        mesh_vis_true_neu_b.v = vertices_b_neu_gt
-
-        mesh_viewer[0][0].set_dynamic_meshes([mesh_vis_true_neu_a], blocking=True)
-        mesh_viewer[0][1].set_dynamic_meshes([mesh_vis_inpo_exp_1], blocking=True)
-        mesh_viewer[0][2].set_dynamic_meshes([mesh_vis_inpo_exp_2], blocking=True)
-        mesh_viewer[0][3].set_dynamic_meshes([mesh_vis_inpo_exp_3], blocking=True)
-        mesh_viewer[0][4].set_dynamic_meshes([mesh_vis_true_exp_a], blocking=True)
-
-        mesh_viewer[1][0].set_dynamic_meshes([mesh_vis_true_neu_a], blocking=True)
-        mesh_viewer[1][1].set_dynamic_meshes([mesh_vis_inpo_id_1], blocking=True)
-        mesh_viewer[1][2].set_dynamic_meshes([mesh_vis_inpo_id_2], blocking=True)
-        mesh_viewer[1][3].set_dynamic_meshes([mesh_vis_inpo_id_3], blocking=True)
-        mesh_viewer[1][4].set_dynamic_meshes([mesh_vis_true_neu_b], blocking=True)
-        mesh_viewer[1][0].save_snapshot(LOGS_PATH + "exp_interpolate/" + datasets_type + ".png")
-        time.sleep(1)
 
 def load_model(show_type, datasets_type, with_gt):
     logging.info(NAME)
@@ -132,8 +149,7 @@ def load_model(show_type, datasets_type, with_gt):
 
     # Load trained model.
     vae = VariationalAE(args, test_data.vertices_num, args.latent_vector_dim_id,
-                            args.latent_vector_dim_exp).to(
-            device)
+                            args.latent_vector_dim_exp).to(device)
 
     vae.load_state_dict(torch.load(LOGS_PATH + NAME + "/VAE-ID_DIS_model_{0}.pt".format(args.epochs)))
 
@@ -150,7 +166,7 @@ def load_model(show_type, datasets_type, with_gt):
             expressions = expressions.item()
             expression_levels = expression_levels.item()
             if show_type == "exp_transfer":
-                if subject_ids == random_subject_COMA_a and expressions == 10 and len(
+                if subject_ids == random_subject_COMA_a and expressions == 6 and len(
                         two_persons_vertices) == 0:
                     two_persons_vertices[subject_ids] = true_vertices
                     two_persons_exps[subject_ids] = expressions
@@ -212,20 +228,24 @@ def expression_transfer(datasets_type="COMA", with_gt=True):
     true_vertices_b = list(two_persons_vertices.values())[1].unsqueeze(0)
     z_id_a, z_exp_a = vae.encoding_eval(true_vertices_a)
     z_id_b, z_exp_b = vae.encoding_eval(true_vertices_b)
-    transfer_vertices_a, _, _ = vae.decoding(z_id_a, z_exp_b)
-    transfer_vertices_b, _, _ = vae.decoding(z_id_b, z_exp_a)
-
-    transfer_vertices_a += mean_face
-    transfer_vertices_b += mean_face
 
     vertices_a_gt = true_vertices_a[0].detach().cpu().numpy() * de_normalise_factor
     vertices_b_gt = true_vertices_b[0].detach().cpu().numpy() * de_normalise_factor
+    vertices_list = [vertices_a_gt, vertices_b_gt]
+    for i in range(1, 151):
+        transfer_vertices_a, _, _ = vae.decoding(z_id_a, z_exp_a + (z_exp_b - z_exp_a) / 150 * i)
+        transfer_vertices_b, _, _ = vae.decoding(z_id_b, z_exp_b - (z_exp_b - z_exp_a) / 150 * i)
+        transfer_vertices_a += mean_face
+        transfer_vertices_b += mean_face
+        vertices_a_transfer = transfer_vertices_a.squeeze(
+            0).detach().cpu().numpy() * de_normalise_factor
+        vertices_b_transfer = transfer_vertices_b.squeeze(
+            0).detach().cpu().numpy() * de_normalise_factor
+        vertices_list.append(vertices_a_transfer)
+        vertices_list.append(vertices_b_transfer)
 
-    vertices_a_transfer = transfer_vertices_a.detach().cpu().numpy() * de_normalise_factor
-    vertices_b_transfer = transfer_vertices_b.detach().cpu().numpy() * de_normalise_factor
-
-    vertices_list = [vertices_a_gt, vertices_b_gt, vertices_a_transfer, vertices_b_transfer]
-    visualise(vis_face=vis_face, vertices_list=vertices_list, datasets_type=datasets_type, show_type="exp_transfer")
+    visualise(vis_face=vis_face, vertices_list=vertices_list, show_type="exp_transfer",
+              datasets_type=datasets_type)
 
 
 def expression_interpolate(datasets_type="COMA", ip_num=4, with_gt=True):
@@ -249,21 +269,23 @@ def expression_interpolate(datasets_type="COMA", ip_num=4, with_gt=True):
     z_id_diff = z_id_a - z_id_b
     z_id_diff_unit = z_id_diff / ip_num
 
+    """   EXP   """
     # i-1 interpolations between the start and end
-    for j in range(1, ip_num):
-        z_exp_in = z_exp_b_neu + z_exp_diff_unit * j
-        interpolate_vertices, _, _ = vae.decoding(z_id_b, z_exp_in)
-        interpolate_vertices += mean_face
-        inpo_vertices = interpolate_vertices.detach().cpu().numpy() * de_normalise_factor
-        interpolated_vertices_list.append(inpo_vertices)
-    interpolated_vertices_list.append(vertices_b_exp_gt)
+    # for j in range(1, ip_num):
+    #     z_exp_in = z_exp_b_neu + z_exp_diff_unit * j
+    #     interpolate_vertices, _, _ = vae.decoding(z_id_b, z_exp_in)
+    #     interpolate_vertices += mean_face
+    #     inpo_vertices = interpolate_vertices.detach().cpu().numpy() * de_normalise_factor
+    #     interpolated_vertices_list.append(np.squeeze(inpo_vertices, axis=0))
+    # interpolated_vertices_list.append(vertices_b_exp_gt)
 
+    """   ID   """
     for j in range(1, ip_num):
         z_id_in = z_id_b + z_id_diff_unit * j
         interpolate_vertices, _, _ = vae.decoding(z_id_in, z_exp_b_neu)
         interpolate_vertices += mean_face
         inpo_vertices = interpolate_vertices.detach().cpu().numpy() * de_normalise_factor
-        interpolated_vertices_list.append(inpo_vertices)
+        interpolated_vertices_list.append(np.squeeze(inpo_vertices, axis=0))
     interpolated_vertices_list.append(vertices_a_neu_gt)
 
     visualise(vis_face=vis_face, vertices_list=interpolated_vertices_list, datasets_type=datasets_type, show_type="exp_interpolate")

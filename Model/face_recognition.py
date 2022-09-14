@@ -5,14 +5,21 @@ from types import SimpleNamespace
 import json
 
 import torch
+import torch.nn.functional as F
+from psbody.mesh import MeshViewers, Mesh
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+import argparse
 import numpy as np
+from numpy.linalg import norm
 
 from Model.vae import VariationalAE
+from Model.discriminator import Discriminator
 from path import *
 from utils.dataset import BU3DFE
+from utils.coma_dataset import COMA
 from utils.facescape_dataset import FaceScape
+from utils.logger import TrainingLogger
 
 NAME = sys.argv[1]
 
@@ -23,7 +30,7 @@ def face_recog(datasets_type, MODEL_EXPRESSION=0, EXPRESSION_LEVEL=0):
     if datasets_type == "BU3DFE":
         test_data = BU3DFE(partition="test", sort=True)
         de_normalise_factor = BU3DFE_NORMALISE
-        mean_face = torch.from_numpy(np.load(DATASET_PATH + 'BU3DFE_mean_face.npy')).to(
+        mean_face = torch.from_numpy(np.load(DATASET_PATH + 'BU3DFE_mean_face_10f.npy')).to(
             device=device, dtype=torch.float32).unsqueeze(0)
         bu3dfe_faces = np.load(DATASET_PATH + "BU3DFE_face.npy")
         vis_face = bu3dfe_faces
@@ -51,11 +58,16 @@ def face_recog(datasets_type, MODEL_EXPRESSION=0, EXPRESSION_LEVEL=0):
     pred_neu_vertices_list = []
     subject_ids_list = []
     expressions_list = []
+
+    pred_lc = []
+    neutral_lc = []
+    cos_similarity = torch.nn.CosineSimilarity(dim=1)
+
     if datasets_type == "BU3DFE":
         exp_level_list = []
     for data in tqdm(test_loader):
         if datasets_type == "BU3DFE":
-            true_vertices, expressions, expression_levels, gender, _, subject_ids, _, _, _, _, _, _ = data
+            true_vertices, expressions, expression_levels, gender, _, subject_ids, _, _, _, _, true_neutral_vertices, _ = data
             subject_ids = subject_ids.item()
             if gender.item() == 1:
                 subject_ids = subject_ids + 100
@@ -63,13 +75,18 @@ def face_recog(datasets_type, MODEL_EXPRESSION=0, EXPRESSION_LEVEL=0):
             expression_levels = expression_levels.item()
             exp_level_list.append(expression_levels)
         elif datasets_type == "FaceScape":
-            true_vertices, expressions, subject_ids, _, _, _, _, _, _ = data
+            true_vertices, expressions, subject_ids, _, _, _, _, true_neutral_vertices, _ = data
             subject_ids = subject_ids.item()
             expressions = expressions.item()
         else:
             raise ValueError("No such dataset.")
 
-        _, pred_vertices_neutral, _, _, _, _, _ = vae(true_vertices)
+        _, pred_vertices_neutral, _, _, _, pred_neu_z, _ = vae(true_vertices)
+        _, _, _, _, _, true_neu_z, _ = vae(true_neutral_vertices)
+
+        pred_lc.append(pred_neu_z.detach().cpu().numpy())
+        neutral_lc.append(true_neu_z.detach().cpu().numpy())
+
         pred_vertices_neutral += mean_face
         pred_vertices_neutral = pred_vertices_neutral.squeeze(0).detach().cpu().numpy()
         pred_neu_vertices_list.append(pred_vertices_neutral)
@@ -96,6 +113,20 @@ def face_recog(datasets_type, MODEL_EXPRESSION=0, EXPRESSION_LEVEL=0):
     recognition_model_vertices = np.concatenate(recognition_model_vertices)
 
     recognition_results = []
+    recg_cosine_results = []
+
+    for k, pred_vector in enumerate(pred_lc):
+        neutral_lc = torch.Tensor(neutral_lc)
+        neutral_lc = torch.squeeze(neutral_lc, 1)
+        pred_vector = torch.Tensor(pred_vector)
+        output = cos_similarity(pred_vector, neutral_lc)
+        closest_lc_idx = np.argmax(output)
+        closest_lc_id = test_loader.dataset.subject_ids[closest_lc_idx]
+        self_id = test_loader.dataset.subject_ids[k]
+        recg_cosine_results.append(closest_lc_id == self_id)
+    print("Latent Recognition Accuracy: %.03f%%" % (
+            sum(recg_cosine_results) / len(recg_cosine_results) * 100.))
+
     for probe_vert, probe_sid, probe_expression in \
             tqdm(zip(pred_neu_vertices_array, subject_ids_array, expressions_array),
                  total=pred_neu_vertices_array.shape[0]):

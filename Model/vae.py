@@ -2,7 +2,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 import numpy as np
-from Model.losses import kl_divergence_loss
+from Model.losses import kl_divergence_loss, kl_info_bottleneck_reg_mws_id_exp
 
 
 class VariationalAE(nn.Module):
@@ -58,16 +58,23 @@ class VariationalAE(nn.Module):
 
         return x_hat, x_hat_id, x_hat_exp
 
-    def forward(self, x, neutral_mask=None):
-        x = self.feature_extraction_layers(x)
+    def forward(self, x1, neutral_mask=None):
+        x = self.feature_extraction_layers(x1)
 
         id_mu = self.fc_id_mu(x)
         id_sigma = self.fc_id_sigma(x)
         exp_mu = self.fc_exp_mu(x)
         exp_sigma = self.fc_exp_sigma(x)
 
-        z_id, kl_loss_id = kl_divergence_loss(id_mu, id_sigma)
-        z_exp, kl_loss_exp = kl_divergence_loss(exp_mu, exp_sigma)
+        if self.args.dataset == "COMA" and self.args.info_bn:
+            z_id, z_exp, kl_loss_id, kl_loss_exp = \
+                kl_info_bottleneck_reg_mws_id_exp(
+                    id_mu, id_sigma, exp_mu, exp_sigma, neutral_mask=neutral_mask)
+            kl_loss_id /= z_id.shape[1]
+            kl_loss_exp /= z_exp.shape[1]
+        else:
+            z_id, kl_loss_id = kl_divergence_loss(id_mu, id_sigma)
+            z_exp, kl_loss_exp = kl_divergence_loss(exp_mu, exp_sigma)
 
         kl_loss_id = kl_loss_id.mean()
         kl_loss_exp = kl_loss_exp.mean()

@@ -70,11 +70,11 @@ class FaceScape(Dataset):
         # Normalisation.
         vertices /= FACESCAPE_NORMALISE
 
-        # 10% test data ids
+        # 30% test data ids
         random.seed(50)
         # The dataset providers list the exact ids for publications
         publicable_list = [122, 212, 340, 344, 393, 395, 421, 527, 594, 610]
-        test_ids_list = random.sample(set(subject_ids), int(len(set(subject_ids)) * 0.1))
+        test_ids_list = random.sample(set(subject_ids), int(len(set(subject_ids)) * 0.3))
         k = 0
         for publicable_id in publicable_list:
             if publicable_id not in test_ids_list:
@@ -104,10 +104,10 @@ class FaceScape(Dataset):
         if partition == "train":
             # Save average normalised point cloud.
             mean_face = np.average(vertices, axis=0)
-            np.save(DATASET_PATH + "facescape_" + partition + "_mean_face", mean_face)
-            if os.path.exists(DATASET_PATH + "facescape_exp_gt_dict.pt"):
+            np.save(DATASET_PATH + "facescape_" + partition + "_mean_face_70percent", mean_face)
+            if os.path.exists(DATASET_PATH + "facescape_exp_gt_dict_70percent.pt"):
                 logging.info("Using existing exp gt dict.")
-                self.expression_gt_dict = torch.load(DATASET_PATH + "facescape_exp_gt_dict.pt")
+                self.expression_gt_dict = torch.load(DATASET_PATH + "facescape_exp_gt_dict_70percent.pt")
             else:
                 self.expression_gt_dict = {}
                 mesh_viewer = MeshViewers(shape=(1, 2))
@@ -124,9 +124,9 @@ class FaceScape(Dataset):
                     mesh_viewer[0][0].set_dynamic_meshes([mesh_exp_true])
                     mesh_viewer[0][1].set_dynamic_meshes([mesh_mean_face])
                     time.sleep(1)
-                torch.save(self.expression_gt_dict, DATASET_PATH + "facescape_exp_gt_dict.pt")
+                torch.save(self.expression_gt_dict, DATASET_PATH + "facescape_exp_gt_dict_70percent.pt")
         else:
-            self.expression_gt_dict = torch.load(DATASET_PATH + "facescape_exp_gt_dict.pt")
+            self.expression_gt_dict = torch.load(DATASET_PATH + "facescape_exp_gt_dict_70percent.pt")
 
         def move_to(obj, device):
             if torch.is_tensor(obj):

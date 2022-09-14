@@ -88,8 +88,7 @@ def calculate_vae_losses(partition, args, epoch, vae_output, laplacian_loss, id_
                    args.lambda6 * F.mse_loss(pred_vertices_neutral, true_neutral_vertices - mean_face)
     else:
         # Compute full vertices l2 loss and average expression vertices l2 loss
-        l2_loss = F.mse_loss(pred_vertices, true_vertices - mean_face) + \
-                  args.lambda5 * F.mse_loss(pred_vertices_exp, true_exp_vertices - mean_face)
+        l2_loss = F.mse_loss(pred_vertices, true_vertices - mean_face)
 
     if args.dataset == "BU3DFE" and args.with_neutral_gt:
         l2_loss += args.lambda6 * F.mse_loss(pred_vertices_exp, true_vertices - true_neutral_vertices)
@@ -160,13 +159,13 @@ def train(args, training_logger):
         train_data = COMA(partition='train', always_sample_same_id=True)
         test_data = COMA(partition='test')
     elif args.dataset == "BU3DFE":
-        bu3dfe_mean_face_np = np.load(DATASET_PATH + 'BU3DFE_mean_face.npy')
+        bu3dfe_mean_face_np = np.load(DATASET_PATH + 'BU3DFE_mean_face_10f.npy')
         bu3dfe_mean_face = torch.from_numpy(bu3dfe_mean_face_np).to(device=device, dtype=torch.float32).unsqueeze(0)
         mean_face = bu3dfe_mean_face
         train_data = BU3DFE(partition='train', always_sample_same_id=True)
         test_data = BU3DFE(partition='test')
     elif args.dataset == "FaceScape":
-        facescape_mean_face_np = np.load(DATASET_PATH + 'facescape_train_mean_face.npy')
+        facescape_mean_face_np = np.load(DATASET_PATH + 'facescape_train_mean_face_70percent.npy')
         facescape_mean_face = torch.from_numpy(facescape_mean_face_np).to(device=device, dtype=torch.float32).unsqueeze(0)
         mean_face = facescape_mean_face
         train_data = FaceScape(partition='train', always_sample_same_id=True)
@@ -188,9 +187,9 @@ def train(args, training_logger):
     if args.dataset == "COMA":
         id_discriminator.load_state_dict(torch.load(LOGS_PATH + "ID_discriminator_COMA/_model.pt"), strict=False)
     elif args.dataset == "BU3DFE":
-        id_discriminator.load_state_dict(torch.load(LOGS_PATH + "ID_discriminator_BU3DFE/_model.pt"), strict=False)
+        id_discriminator.load_state_dict(torch.load(LOGS_PATH + "ID_discriminator_BU3DFE_10f/_model.pt"), strict=False)
     elif args.dataset == "FaceScape":
-        id_discriminator.load_state_dict(torch.load(LOGS_PATH + "ID_discriminator_FaceScape/_model.pt"), strict=False)
+        id_discriminator.load_state_dict(torch.load(LOGS_PATH + "ID_discriminator_FaceScape_70percent/_model.pt"), strict=False)
     else:
         raise ValueError("No such dataset.")
 
@@ -239,7 +238,10 @@ def train(args, training_logger):
 
             true_concatenate_vertices = torch.cat([true_vertices, sample_id_vertices], dim=2)
             if args.dataset == "COMA":
-                pred_vertices, pred_vertices_neutral, pred_vertices_exp, kl_loss_id, kl_loss_exp, z_id, _ = vae(true_vertices, expression_levels<=0.1)
+                try:
+                    pred_vertices, pred_vertices_neutral, pred_vertices_exp, kl_loss_id, kl_loss_exp, z_id, _ = vae(true_vertices, expression_levels<=0.1)
+                except ValueError:
+                    pass
             else:
                 pred_vertices, pred_vertices_neutral, pred_vertices_exp, kl_loss_id, kl_loss_exp, z_id, _ = vae(
                     true_vertices)
@@ -461,7 +463,7 @@ if __name__ == '__main__':
                         help="Using ID discriminator.")
     parser.add_argument("--input_channel", type=int, default=6, metavar="N",
                         help="Input channel.")
-    parser.add_argument("-e", "--epochs", type=int, default=300, metavar="N",
+    parser.add_argument("-e", "--epochs", type=int, default=50, metavar="N",
                         help="Number of epochs to train.")
     parser.add_argument("-b", "--batch_size", type=int, default=32, metavar="N",
                         help="Batch size for training.")
@@ -475,8 +477,6 @@ if __name__ == '__main__':
                         help="Lambda to balance EXP KL loss functions.")
     parser.add_argument("--lambda4", type=float, default=1e-3,
                         help="Lambda to balance ID discriminator loss functions.")
-    parser.add_argument("--lambda5", type=float, default=5e-1,
-                        help="Lambda to balance Expression L2 loss.")
     parser.add_argument("--lambda6", type=float, default=10,
                         help="Lambda to balance Neutral face L2 loss.")
     parser.add_argument("--lambda7", type=float, default=1e-2,
@@ -497,50 +497,60 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     """ args override zone starts. """
-    # # args.name = "BU3DFE_wogt_wobndropout_withsoftmax"
+    # args.name = "BU3DFE_wogt_wobndropout_withsoftmax"
     # args.dataset = "BU3DFE"
     # args.with_neutral_gt = False
+
+    # if args.dataset == "BU3DFE":
+    #     if args.id_discriminator_used:
+    #         args.name = "BU3DFE_using_iddis_using_gt"
+    #     else:
+    #         args.name = "BU3DFE_wo_iddis_using_gt"
+    #     args.latent_vector_dim_id = 40
+    #     args.latent_vector_dim_exp = 40
+    #     args.lambda1 = 250
+    #     args.lambda2 = 3e-5
+    #     args.lambda3 = 3e-5
+    #     args.lambda6 = 0.5
+    #     args.lambda7 = 5e-2
+    #     args.lambda8 = 10
+    #     args.use_bn = False
+    #     args.batch_size = 8
+    #     args.epochs = 280
     #
-    # if args.with_neutral_gt:
-    #     if args.dataset == "BU3DFE":
-    #         if args.id_discriminator_used:
-    #             args.name = "BU3DFE_using_iddis_using_gt"
-    #         else:
-    #             args.name = "BU3DFE_wo_iddis_using_gt"
-    #         args.latent_vector_dim_id = 32
-    #         args.latent_vector_dim_exp = 32
-    #         args.lambda1 = 250
-    #         args.lambda2 = 1e-4
-    #         args.lambda3 = 3e-5
-    #         args.lambda6 = 0.5
-    #         args.lambda7 = 5e-2
-    #         args.lambda8 = 10
-    #         args.use_bn = False
-    #         args.batch_size = 16
-    #
-    #     elif args.dataset == "COMA":
-    #         args.latent_vector_dim_id = 4
-    #         args.latent_vector_dim_exp = 4
+    # elif args.dataset == "COMA":
+    #     args.latent_vector_dim_id = 4
+    #     args.latent_vector_dim_exp = 4
+    #     if args.with_neutral_gt:
     #         args.lr_id_discriminator = 1e-3
     #         args.lambda1 = 5000
     #         args.lambda2 = 3e-3
     #         args.lambda3 = 3e-3
     #         args.lambda4 = 1e-5
     #         args.lambda6 = 5
-    #         args.batch_size = 32
-    #         args.epochs = 280
-    #
-    #     elif args.dataset == "FaceScape":
-    #         args.latent_vector_dim_id = 64
-    #         args.latent_vector_dim_exp = 64
-    #         args.lambda1 = 5000
-    #         args.lambda2 = 3e-5
-    #         args.lambda3 = 3e-5
+    #         args.lambda7 = 7e-3
+    #         args.lambda8 = 7e-3
+    #     else:
+    #         args.lambda1 = 600
     #         args.lambda4 = 5e-4
-    #         args.lambda6 = 1
+    #         args.lambda7 = 5e-3
     #         args.use_bn = False
-    #         args.batch_size = 32
-    #         args.epochs = 280
+    #     args.batch_size = 32
+    #     args.epochs = 300
+    #
+    # elif args.dataset == "FaceScape":
+    #     args.latent_vector_dim_id = 64
+    #     args.latent_vector_dim_exp = 64
+    #
+    #     args.lambda1 = 5000
+    #     args.lambda2 = 3e-5
+    #     args.lambda3 = 3e-5
+    #     args.lambda4 = 5e-4
+    #     args.lambda6 = 1
+    #
+    #     args.use_bn = False
+    #     args.batch_size = 32
+    #     args.epochs = 280
     """ args override zone ends. """
 
     # Setup logging.
