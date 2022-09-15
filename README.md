@@ -116,8 +116,7 @@ PYTHONPATH=$PYTHONPATH:../ python face_recognition.py FaceScape_withgt_withiddis
 ```
 
 
-## Citation
-If it helps your research please cite the paper:
+## Cite the work
 ```
 ```
 
@@ -127,4 +126,4 @@ This code repo is based on [PointNet](https://github.com/charlesq34/pointnet). W
 
 
 ## License
-It is released under the MIT License.
+It is released under the MIT License. See the [LICENSE file](https://github.com/rmraaron/FaceExpDisentanglement/blob/main/LICENSE) for more details.
