@@ -1,6 +1,6 @@
 # Adversarial Face Disentanglement
 
-This repository is an implementation of the IEEE FG 2023 paper 'Adversarial 3D Face Disentanglement of Identity and Expression' by Yajie et al. Full paper is available [here]().
+This repository is an implementation of the IEEE FG 2023 paper 'Adversarial 3D Face Disentanglement of Identity and Expression' by Yajie et al. Full paper is available [here](https://eprints.whiterose.ac.uk/193526/).
 
 ## Requirements
 * Python 3.7
