@@ -118,6 +118,13 @@ PYTHONPATH=$PYTHONPATH:../ python face_recognition.py FaceScape_withgt_withiddis
 
 ## Cite the work
 ```
+@inproceedings{gu2022adversarial,
+  title={Adversarial 3D Face Disentanglement of Identity and Expression},
+  author={Gu, Yajie and Pears, NE and Sun, Hao},
+  booktitle={International Conference on Automatic Face and Gesture Recognition 2023},
+  year={2022},
+  organization={IEEE}
+}
 ```
 
 
